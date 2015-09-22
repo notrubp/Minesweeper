@@ -32,8 +32,6 @@
   }
 
   Game.prototype.load = function(success, failure) {
-    this.sprites = Dom.createImage(null, "img/sprites.png");
-
     this.background = Dom.createImage(null, "img/board.png");
     Property.set(this.background, "display", "none");
     Dom.append(document.body, this.background);
@@ -48,8 +46,10 @@
     // Wait for sprite sheet to load.
 
     Chain.append((function(success, failure) {
+      this.sprites = Dom.createImage();
       this.sprites.onload = success;
       this.sprites.onerror = success;
+      Dom.setImageSrc(this.sprites, "img/sprites.png");
     }).bind(this))
 
     // Create sprite sheet.
