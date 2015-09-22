@@ -119,21 +119,21 @@
       /*
        * Invoke a chain link.
        */
-      function invoke(link) {
+      var invoke = function(link) {
         Scheduler.deferred(link.bind(null, success.bind(null, link), failure.bind(null, link)));
       }
 
       /*
        * Invoke the next chain link.
        */
-      function next() {
+      var next = function() {
         invoke(links.shift());
       }
 
       /**
        * Remove a chain link.
        */
-      function remove(link) {
+      var remove = function(link) {
         var i = links.indexOf(link);
 
         if (i != -1) {
@@ -144,7 +144,7 @@
       /*
        * Handles success of a chain link and final (all links have completed) success.
        */
-      function onSuccess() {
+      var onSuccess = function() {
         if (ordered && links.length > 0) {
           next();
         } else if (links.length == 0) {
@@ -162,7 +162,7 @@
       /*
        * Handles failure of a chain link.
        */
-      function onFailure() {
+      var onFailure = function() {
         if (ordered && links.length > 0) {
           next();
         } else if (links.length == 0) {
@@ -175,7 +175,7 @@
       /*
        * Link success callback.
        */
-      function success(link) {
+      var success = function(link) {
         remove(link);
         onSuccess();
       }
@@ -183,7 +183,7 @@
       /*
        * Link failure callback.
        */
-      function failure(link, exception) {
+      var failure = function(link, exception) {
         /*
          * Mark for later.
          */

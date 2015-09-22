@@ -140,6 +140,19 @@
         "nine",
       ];
 
+      // Lookup table for number -> numbered node animation name
+      this.spriteSheet.nodeNumbers = [
+        "node_empty",
+        "node_1",
+        "node_2",
+        "node_3",
+        "node_4",
+        "node_5",
+        "node_6",
+        "node_7",
+        "node_8",
+      ];
+
       // Next
       success();
     }).bind(this))
@@ -147,7 +160,7 @@
     // Initialize board.
 
     .append((function(success, failure) {
-      this.board = new Board();
+      this.board = new Board(15, 50, 16, 16, 40);
       this.board.load(this, success, failure);
     }).bind(this))
 

@@ -38,27 +38,16 @@
   <img src="img/loading.png" class="loading" style="position: absolute" />
   <script>
     Dom.listen(document, 'DOMContentLoaded', function() {
+      Log.Tags.enable("game");
+
       var game = new Game();
+
       game.load(function() {
         var nodes = game.board.nodes.slice();
         var frames = 0;
 
         function loop() {
-          if (nodes.length > 0) {
-            var i = Random.range(nodes.length);
-            nodes[i].gotoAndStop("node_hit");
-            nodes.splice(i, 1);
-          }
-
-          if (frames < 1000) {
-            game.ui.left.draw(frames);
-            game.ui.right.draw(frames);
-          }
-
           game.stage.update();
-
-          ++frames;
-
           Scheduler.raf(loop);
         }
 

@@ -26,31 +26,184 @@
    * Imports
    */
 
-  function Board() {
+  function Board(x, y, width, height, numberOfMines) {
+    this.x = x;
+    this.y = y;
+    this.width = width;
+    this.height = height;
+    this.numberOfMines = numberOfMines;
     this.nodes = [];
   }
 
   Board.prototype.load = function(game, success, failure) {
-    // 15, 50 <-- top left board
+    var loader = new Chain();
 
-    for (var row = 0; row < 16; ++row) {
-      var y = 50 + row * 16;
+    // Create node grid.
 
-      for (var col = 0; col < 16; ++col) {
-        var x = 15 + col * 16;
+    for (var row = 0; row < this.width; ++row) {
+      var y = this.y + row * 16;
 
-        var sprite = new createjs.Sprite(game.spriteSheet, "node_blank");
-        sprite.x = x;
-        sprite.y = y;
+      for (var col = 0; col < this.height; ++col) {
+        var x = this.x + col * 16;
 
-        this.nodes.push(sprite);
-        game.stage.addChild(sprite);
+        var node = new Node(row * this.width + col, x, y);
+
+        loader.append(Node.prototype.load.bind(node, game, this));
+
+        this.nodes.push(node);
       }
     }
 
-    if (success) {
+    // Build graph.
+
+    loader.append((function(success, failure) {
+      // Connects two nodes by index.
+      // Spatial difference doesnt matter for this game, so the 
+      // node will not know where the neighbors are. Only that
+      // they are neighbors.
+      var connect = (function(i, j) {
+        if (i < 0 || i >= this.nodes.length) {
+          return;
+        }
+
+        var node = this.nodes[i];
+
+        if (j >= 0 && j < this.nodes.length) {
+          node.neighbors.push(this.nodes[j]);
+        }
+      }).bind(this);
+
+      for (var i = 0; i < this.nodes.length; ++i) {
+        var row = Math.floor(i / this.width);
+
+        // Top
+        var t = i - this.width;
+
+        // Top row
+        var trow = Math.floor(t / this.width);
+
+        // Top right
+        var tr = t + 1;
+
+        // Right
+        var r = i + 1;
+        
+        // Bottom 
+        var b = i + this.width;
+
+        // Bottom row
+        var brow = Math.floor(b / this.width);
+
+        // Bottom right
+        var br = b + 1;
+
+        // Bottom left
+        var bl = b - 1;
+
+        // Left
+        var l = i - 1;
+
+        // Top left
+        var tl = t - 1;
+
+        // Connect in clockwise order from top.
+
+        // Top
+        connect(i, t);
+
+        // Top right
+        if (trow == Math.floor(tr / this.width)) {
+          connect(i, tr);
+        }
+
+        // Right
+        if (row == Math.floor(r / this.width)) {
+          connect(i, r);
+        }
+
+        // Bottom right
+        if (brow == Math.floor(br / this.width)) {
+          connect(i, br);
+        }
+
+        // Bottom
+        connect(i, b);
+
+        // Bottom left
+        if (brow == Math.floor(bl / this.width)) {
+          connect(i, bl);
+        }
+
+        // Left
+        if (row == Math.floor(l / this.width)) {
+          connect(i, l);
+        }
+
+        // Top left
+        if (trow == Math.floor(tl / this.width)) {
+          connect(i, tl);
+        }
+      }
+
+      // Next.
       success();
+    }).bind(this));
+
+    // Randomly choose mines.
+
+    loader.append((function(success, failure) {
+      var available = this.nodes.slice();
+
+      for (var i = 0; i < this.numberOfMines; ++i) {
+        if (available.length > 0) {
+          // Choose.
+          var j = Random.range(available.length);
+
+          // Mark.
+          available[j].mine = true;
+
+          // Remove.
+          available.splice(j, 1);
+        } else {
+          // Ran out of nodes to choose from.
+          break;
+        }
+      }
+
+      // Next.
+      success();
+    }).bind(this));
+
+    // Setup adjacent nodes.
+    
+    loader.append((function(success, failure) {
+      this.nodes.forEach((function(v) {
+        if (!v.mine) {
+          v.numberOfAdjacentMines = v.neighbors.reduce(function(n, v) {
+            if (v.mine) {
+              ++n;
+            }
+
+            return n;
+          }, 0);
+        }
+      }).bind(this));
+
+      // Next.
+      success();
+    }).bind(this));
+
+    loader.success(success)
+      .failure(failure)
+      .commit();
+  }
+
+  Board.prototype.expand = function(i) {
+    if (i < 0 || i >= this.nodes.length) {
+      return;
     }
+
+    this.nodes[i].sprite.gotoAndStop("node_empty");
   }
 
   /**

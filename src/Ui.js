@@ -61,7 +61,7 @@
       var j = n.length - (this.length - i);
 
       // Pad zeroes on the left.
-      var m = j < 0 ? 0 : Number.parseInt(n[j]);
+      var m = j < 0 ? 0 : Number(n[j]);
 
       this.sprites[i].gotoAndStop(this.numbers[m]);
     }
@@ -77,7 +77,7 @@
     this.sprite.x = this.x;
     this.sprite.y = this.y;
 
-    this.sprite.helper = new createjs.ButtonHelper(this.sprite, 
+    this.sprite.buttonHelper = new createjs.ButtonHelper(this.sprite, 
       "smiley",
       "smiley_scared",
       "smiley_pressed",
