@@ -6,11 +6,66 @@
   <link rel="stylesheet" type="text/css" href="css/styles.css" />
   <script type="text/javascript" src="https://code.createjs.com/easeljs-0.8.1.min.js"></script>
   <script type="text/javascript" src="https://code.createjs.com/preloadjs-0.6.1.min.js"></script>
-  <script type="text/javascript" src="src/startup.js"></script>
+  <script type="text/javascript" src="src/Z/Platform.js"></script>
+  <script type="text/javascript" src="src/Z/Pair.js"></script>
+  <script type="text/javascript" src="src/Z/Util.js"></script>
+  <script type="text/javascript" src="src/Z/Time.js"></script>
+  <script type="text/javascript" src="src/Z/Random.js"></script>
+  <script type="text/javascript" src="src/Z/Log.js"></script>
+  <script type="text/javascript" src="src/Z/Uuid.js"></script>
+  <script type="text/javascript" src="src/Z/Scheduler.js"></script>
+  <script type="text/javascript" src="src/Z/Exception.js"></script>
+  <script type="text/javascript" src="src/Z/Chain.js"></script>
+  <script type="text/javascript" src="src/Z/Unit.js"></script>
+  <script type="text/javascript" src="src/Z/Color.js"></script>
+  <script type="text/javascript" src="src/Z/Border.js"></script>
+  <script type="text/javascript" src="src/Z/Math.js"></script>
+  <script type="text/javascript" src="src/Z/Point.js"></script>
+  <script type="text/javascript" src="src/Z/Rect.js"></script>
+  <script type="text/javascript" src="src/Z/Steps.js"></script>
+  <script type="text/javascript" src="src/Z/Property.js"></script>
+  <script type="text/javascript" src="src/Z/Transition.js"></script>
+  <script type="text/javascript" src="src/Z/Transform.js"></script>
+  <script type="text/javascript" src="src/Z/Dom.js"></script>
+  <script type="text/javascript" src="src/Z/Keyframes.js"></script>
+  <script type="text/javascript" src="src/Z/Image.js"></script>
+  <script type="text/javascript" src="src/Game.js"></script>
+  <script type="text/javascript" src="src/Ui.js"></script>
+  <script type="text/javascript" src="src/Board.js"></script>
+  <script type="text/javascript" src="src/Node.js"></script>
 </head>
-<body onload="init();">
-  <img src="img/board.png" style="position: absolute" />
-  <canvas id="canvas" width="288" height="322" style="position: absolute"></canvas>
+<body>
   <img src="img/loading.png" class="loading" style="position: absolute" />
+  <script>
+    Dom.listen(document, 'DOMContentLoaded', function() {
+      var game = new Game();
+      game.load(function() {
+        var nodes = game.board.nodes.slice();
+        var frames = 0;
+
+        function loop() {
+          if (nodes.length > 0) {
+            var i = Random.range(nodes.length);
+            nodes[i].gotoAndStop("node_hit");
+            nodes.splice(i, 1);
+          }
+
+          if (frames < 1000) {
+            game.ui.left.draw(frames);
+            game.ui.right.draw(frames);
+          }
+
+          game.stage.update();
+
+          ++frames;
+
+          Scheduler.raf(loop);
+        }
+
+        // Begin loop.
+        loop();
+      });
+    });
+  </script>
 </body>
 </html>
