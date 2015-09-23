@@ -26,105 +26,31 @@
    * Imports
    */
   var Dom = global.Dom;
-  var Property = global.Property;
 
   function Game() {
+    this.Container_constructor();
   }
 
-  Game.prototype.load = function(success, failure) {
-    this.background = Dom.createImage(null, "img/board.png");
-    Property.set(this.background, "display", "none");
-    Dom.append(document.body, this.background);
+  var prototype = createjs.extend(Game, createjs.Container);
 
-    this.canvas = Dom.createCanvas(Rect.makeXywh(0, 0, 288, 322));
-    Property.set(this.canvas, "display", "none");
-    Dom.append(document.body, this.canvas);
+  prototype.load = function(config, success, failure) {
+    this.config = config;
 
-    this.stage = new createjs.Stage(this.canvas);
-    this.stage.enableMouseOver(10);
+    // Register handlers.
+    this.on("reset", (function() {
+      this.reset();
+    }).bind(this));
 
-    // Wait for sprite sheet to load.
+    this.on("gameOver", (function(e) {
+      this.gameOver(e.win);
+    }).bind(this));
 
-    Chain.append((function(success, failure) {
-      this.sprites = Dom.createImage();
-      this.sprites.onload = success;
-      this.sprites.onerror = success;
-      Dom.setImageSrc(this.sprites, "img/sprites.png");
-    }).bind(this))
+    var chain = new Chain();
 
     // Create sprite sheet.
 
-    .append((function(success, failure) {
-      this.spriteSheet = new createjs.SpriteSheet({
-        images: [ this.sprites ], 
-        frames: [
-          // [ x, y, width, height ]
-          [ 87, 0, 13, 23 ], // one
-          [ 87, 23, 13, 23 ], // two
-          [ 100, 0, 13, 23 ], // three
-          [ 74, 0, 13, 23 ], // four
-          [ 100, 23, 13, 23 ], // five
-          [ 87, 69, 13, 23 ], // six
-          [ 74, 69, 13, 23 ], // seven
-          [ 87, 46, 13, 23 ], // eight
-          [ 74, 23, 13, 23 ], // nine
-          [ 74, 46, 13, 23 ], // zero
-          [ 0, 78, 26, 26 ], // smiley
-          [ 0, 0, 26, 26 ], // smiley_pressed
-          [ 0, 26, 26, 26 ], // smiley_scared
-          [ 26, 0, 26, 26 ], // smiley_cool
-          [ 0, 52, 26, 26 ], // smiley_dead
-          [ 52, 0, 16, 16 ], // node_blank
-          [ 58, 64, 16, 16 ], // node_empty
-          [ 42, 90, 16, 16 ], // node_flagged
-          [ 58, 80, 16, 16 ], // node_question
-          [ 42, 42, 16, 16 ], // node_question_pressed
-          [ 26, 90, 16, 16 ], // node_mine
-          [ 26, 42, 16, 16 ], // node_hit
-          [ 26, 26, 16, 16 ], // node_minemarked
-          [ 58, 16, 16, 16 ], // node_1
-          [ 58, 48, 16, 16 ], // node_2
-          [ 42, 58, 16, 16 ], // node_3
-          [ 58, 32, 16, 16 ], // node_4
-          [ 42, 74, 16, 16 ], // node_5
-          [ 26, 74, 16, 16 ], // node_6
-          [ 42, 26, 16, 16 ], // node_7
-          [ 26, 58, 16, 16 ] // node_8
-        ],
-        animations: {    
-          "one": 0,
-          "two": 1,
-          "three": 2,
-          "four": 3,
-          "five": 4,
-          "six": 5,
-          "seven": 6,
-          "eight": 7,
-          "nine": 8,
-          "zero": 9,
-          "smiley": 10,
-          "smiley_pressed": 11,
-          "smiley_scared": 12,
-          "smiley_cool": 13,
-          "smiley_dead": 14,
-          "node_blank": 15,
-          "node_empty": 16,
-          "node_flagged": 17,
-          "node_question": 18,
-          "node_question_pressed": 19,
-          "node_mine": 20,
-          "node_hit": 21,
-          "node_minemarked": 22,
-          "node_1": 23,
-          "node_2": 24,
-          "node_3": 25,
-          "node_4": 26,
-          "node_5": 27,
-          "node_6": 28,
-          "node_7": 29,
-          "node_8": 30
-        }
-      });
+    chain.append((function(success, failure) {
+      this.spriteSheet = new createjs.SpriteSheet(this.config.spriteSheet);
 
       // Lookup table for number -> sprite sheet animation name
       this.spriteSheet.numbers = [
@@ -159,34 +85,46 @@
 
     // Initialize board.
 
-    .append((function(success, failure) {
-      this.board = new Board(15, 50, 16, 16, 40);
-      this.board.load(this, success, failure);
-    }).bind(this))
+    chain.append((function(success, failure) {
+      this.board = new Board(this, 
+        config.board.x, 
+        config.board.y, 
+        config.board.width,
+        config.board.height, 
+        config.board.nodeWidth, 
+        config.board.nodeHeight, 
+        config.board.numberOfMines);
 
+      this.board.load(success, failure);
+
+      // Attach.
+      this.addChild(this.board);
+    }).bind(this))
+    
     // Initialize UI.
 
-    .append((function(success, failure) {
-      this.ui = new Ui();
-      this.ui.load(this, success, failure);
+    chain.append((function(success, failure) {
+      this.ui = new Ui(this);
+      this.ui.load(success, failure);
+
+      // Attach.
+      this.addChild(this.ui);
     }).bind(this))
+
+    // Reset.
+
+    this.reset(chain);
 
     // Show the game.
     
-    .success((function() {
-      // Draw (once).
-      this.stage.update();
-
-      Property.remove(this.background, "display");
-      Property.remove(this.canvas, "display");
-
+    chain.success((function() {
       // Signal that game has fully loaded.
       if (success) {
         success();
       }
     }).bind(this))
 
-    .failure((function() {
+    chain.failure((function() {
       // Signal that game has failed to load.
       if (failure) {
         failure();
@@ -195,13 +133,72 @@
 
     // Start in order (non-async).
 
-    .setOrdered(true)
-    .commit();
+    chain.setOrdered(true)
+    chain.commit();
+  }
+
+  prototype.reset = function(chain) {
+    this.mouseEnabled = false;
+
+    // Allow this function to support being
+    // inserted into a chain (for load()).
+    var inserted = chain != null;
+
+    if (!inserted) {
+      chain = new Chain();
+    }
+
+    // Reset board.
+
+    chain.append((function(success, failure) {
+      this.board.reset(success, failure);
+    }).bind(this))
+
+    // Reset UI.
+
+    chain.append((function(success, failure) {
+      this.ui.reset(success, failure);
+    }).bind(this))
+
+    // Reset.
+    
+    chain.append((function(success, failure) {
+      this.minesLeft = this.board.numberOfMines;
+      this.ui.left.setValue(this.minesLeft);
+
+      success();
+    }).bind(this))
+
+    chain.success((function() {
+      this.mouseEnabled = true;
+      this.board.mouseEnabled = true;
+    }).bind(this))
+
+    if (!inserted) {
+      chain.setOrdered(true)
+      chain.commit();
+    }
+  }
+
+  prototype.gameOver = function(win) {
+    // Disable any more input on the board.
+    this.board.mouseEnabled = false;
+
+    // Stop the UI counters.
+    this.ui.stop();
+
+    if (win) {
+      this.ui.smiley.cool();
+      this.board.flagAllMines();
+    } else {
+      this.ui.smiley.dead();
+      this.board.showAllMines();
+    }
   }
 
   /*
    * Exports
    */
-  global.Game = Game;
+  global.Game = createjs.promote(Game, "Container");
 })(window);
 

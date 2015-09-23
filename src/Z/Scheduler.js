@@ -40,6 +40,38 @@
     return setTimeout(callback, 0);
   }
 
+  /**
+   * Schedule a callback in X milliseconds.
+   * @function at
+   * @memberof Scheduler
+   * @static
+   * @param {Number} ms
+   * @param {function} callback
+   * @returns {Number} A setTimeout id.
+   */
+  Scheduler.at = function(ms, callback) {
+    return setTimeout(callback, ms);
+  }
+
+  /**
+   * Schedule a callback to repeat every X milliseconds.
+   * @function interval
+   * @memberof Scheduler
+   * @static
+   * @param {Number} ms
+   * @param {function} callback
+   * @returns {Object} A timer object.
+   */
+  Scheduler.interval = function(ms, callback) {
+    var id = setInterval(callback, ms);
+
+    return {
+      cancel : function() {
+        clearInterval(id);
+      }
+    }
+  }
+
   /*
    * requestAnimationFrame polyfill.
    */
@@ -87,7 +119,7 @@
    * @returns {Number} A requestAnimationFrame id.
    */
   Scheduler.raf = function(callback) {
-    return requestAnimationFrame(callback);
+    return window.requestAnimationFrame(callback);
   }
 
   /*

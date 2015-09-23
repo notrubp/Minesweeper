@@ -2,6 +2,10 @@
 <html>
 <head>
   <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src *; style-src 'self' 'unsafe-inline'; script-src * 'unsafe-inline' 'unsafe-eval'">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="msapplication-tap-highlight" content="no">
+  <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width">
   <link rel="stylesheet" type="text/css" href="css/reset.css" />
   <link rel="stylesheet" type="text/css" href="css/styles.css" />
   <script type="text/javascript" src="https://code.createjs.com/easeljs-0.8.1.min.js"></script>
@@ -31,30 +35,13 @@
   <script type="text/javascript" src="src/Z/Image.js"></script>
   <script type="text/javascript" src="src/Game.js"></script>
   <script type="text/javascript" src="src/Ui.js"></script>
+  <script type="text/javascript" src="src/CounterText.js"></script>
+  <script type="text/javascript" src="src/Smiley.js"></script>
   <script type="text/javascript" src="src/Board.js"></script>
   <script type="text/javascript" src="src/Node.js"></script>
+  <script type="text/javascript" src="application.js"></script>
 </head>
 <body>
-  <img src="img/loading.png" class="loading" style="position: absolute" />
-  <script>
-    Dom.listen(document, 'DOMContentLoaded', function() {
-      Log.Tags.enable("game");
-
-      var game = new Game();
-
-      game.load(function() {
-        var nodes = game.board.nodes.slice();
-        var frames = 0;
-
-        function loop() {
-          game.stage.update();
-          Scheduler.raf(loop);
-        }
-
-        // Begin loop.
-        loop();
-      });
-    });
-  </script>
+  <img src="img/loading.png" alt="" class="loading" style="position: absolute" />
 </body>
 </html>

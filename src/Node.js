@@ -26,7 +26,25 @@
    * Imports
    */
 
-  function Node(i, x, y) {
+  /**
+   * Node states
+   */
+  Node.State = {
+    Hidden : 0,
+    Flagged : 1,
+    Touched : 2
+  };
+
+  Object.freeze(Node.State);
+
+  /**
+   * A game board node
+   */
+  function Node(game, board, i, x, y) {
+    this.Container_constructor();
+    this.game = game;
+    this.lookup = game.spriteSheet.nodeNumbers;
+    this.board = board;
     this.neighbors = [];
     this.index = i;
     this.x = x;
@@ -34,33 +52,78 @@
     this.mine = false;
     this.state = Node.State.Hidden;
     this.numberOfAdjacentMines = 0;
+    this.flagging = false;
   }
 
-  Node.prototype.load = function(game, board, success, failure) {
-    this.nodeNumbers = game.spriteSheet.nodeNumbers;
-    this.board = board;
+  var prototype = createjs.extend(Node, createjs.Container);
 
-    this.sprite = new createjs.Sprite(game.spriteSheet, "node_blank");
-    this.sprite.x = this.x;
-    this.sprite.y = this.y;
+  /**
+   * Load and initialize.
+   */
+  prototype.load = function(success, failure) {
+    this.sprite = new createjs.Sprite(this.game.spriteSheet, "node_blank");
 
-    this.sprite.buttonHelper = new createjs.ButtonHelper(this.sprite, 
-      "node_blank",
-      null,
-      "node_empty",
-      false);
+    // Mouse down event handler
 
-    this.sprite.on("mouseout", (function() {
-      if (this.sprite.buttonHelper.enabled) {
-        this.sprite.gotoAndStop("node_blank");
+    this.sprite.on("mousedown", (function(e) {
+      // Mark if right button is down.
+      this.flagging = e.nativeEvent.button == 2;
+
+      Log.info("game", "mousedown flagging=" + this.flagging);
+
+      // Do not allow flagged mines to be touched.
+      if (!this.flagging && this.state != Node.State.Flagged) {
+        this.sprite.gotoAndStop("node_empty");
+
+        // Uh oh!
+        this.game.ui.smiley.scared();
       }
     }).bind(this));
 
-    this.sprite.addEventListener("click", (function() {
-      this.choose();
+    // Mouse leave event handler
+
+    this.sprite.on("mouseout", (function() {
+      if (!this.mouseEnabled) {
+        // CreateJS apparently still sends these events 
+        // even with input disabled.
+       return;
+      }
+     
+      if (this.state != Node.State.Flagged) {
+        this.sprite.gotoAndStop("node_blank");
+
+        // Reset.
+        this.game.ui.smiley.reset();
+      }
+
+      this.flagging = false;
     }).bind(this));
 
-    game.stage.addChild(this.sprite);
+    // Click event handler
+
+    this.sprite.addEventListener("click", (function() {
+      this.game.ui.smiley.reset();
+
+      if (this.flagging) {
+        // Toggle flag.
+        if (this.state == Node.State.Hidden && this.board.numberOfNodesFlagged < this.board.numberOfMines) {
+          this.setState(Node.State.Flagged);
+        } else {
+          this.setState(Node.State.Hidden);
+        }
+
+        this.flagging = false;
+      } else if (this.state != Node.State.Flagged) {
+        // Disable input.
+        this.mouseEnabled = false;
+
+        // Choose this node.
+        this.choose();
+      }
+    }).bind(this));
+
+    // Attach.
+    this.addChild(this.sprite);
 
     // Signal load is complete.
     if (success) {
@@ -68,19 +131,56 @@
     }
   }
 
-  Node.prototype.choose = function() {
+  /**
+   * Reset to default state.
+   */
+  prototype.reset = function() {
+    this.mouseEnabled = true;
+    this.flagging = false;
+    this.mine = false;
+    this.numberOfAdjacentMines = 0;
+    this.setState(Node.State.Hidden);
+    this.sprite.gotoAndStop("node_blank");
+  }
+
+  /**
+   * Choose this node and change state.
+   */
+  prototype.choose = function() {
     this.setState(Node.State.Touched);
 
     if (this.mine) {
-      this.sprite.gotoAndStop("node_mine");
-    } else if (this.numberOfAdjacentMines > 0) {
-      this.sprite.gotoAndStop(this.nodeNumbers[this.numberOfAdjacentMines]);
+      // Signal to the game that the game is over and
+      // was lost.
+      var e = new createjs.Event("gameOver");
+      e.win = false;
+
+      this.game.dispatchEvent(e);
     } else {
-      this.board.expand(this.index);
+      // Expand is async (with input forced to disabled), so evaluate once it's done.
+      this.board.expand(this.index, (function() {
+        this.board.evaluate();
+      }).bind(this));
     }
   }
 
-  Node.prototype.setState = function(state) {
+  /**
+   * True if this node is a blank node. (Not a mine and has none adjacent)
+   */
+  prototype.isBlank = function() {
+    return !this.mine && this.numberOfAdjacentMines == 0;
+  }
+
+  /**
+   * Change this node's state.
+   */
+  prototype.setState = function(state) {
+    if (this.state == state) {
+      return;
+    }
+
+    var oldState = this.state;
+
     this.state = state;
 
     switch(state) {
@@ -91,22 +191,25 @@
         this.sprite.gotoAndStop("node_flagged");
         break;
       case Node.State.Touched:
-        this.sprite.buttonHelper.enabled = false;
+        if (this.numberOfAdjacentMines > 0) {
+          this.sprite.gotoAndStop(this.lookup[this.numberOfAdjacentMines]);
+        } else if (this.mine) {
+          this.sprite.gotoAndStop("node_hit");
+        } else {
+          this.sprite.gotoAndStop("node_empty");
+        }
+
+        this.mouseEnabled = false;
         break;
     }
+
+    // Signal to the board that this node's state has changed.
+    this.board.onNodeStateChanged(this, oldState, state);
   }
-
-  Node.State = {
-    Hidden : 0,
-    Flagged : 1,
-    Touched : 2
-  };
-
-  Object.freeze(Node.State);
 
   /*
    * Exports
    */
-  global.Node = Node;
+  global.Node = createjs.promote(Node, "Container");
 })(window);
 
